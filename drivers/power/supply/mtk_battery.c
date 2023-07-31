@@ -704,6 +704,14 @@ static void mtk_battery_external_power_changed(struct power_supply *psy)
 	gm->chr_type = cur_chr_type;
 
 }
+//techyminati: Add gigaset charge restriction config
+#if defined (CONFIG_GIGASET_CHARGE_RESTRICTION)
+	   if(get_cmd_charge_disable() == true){
+	   	   ret_value = 0;
+		   bm_err(" cmd_discharging  is true\n");
+	   	}
+#endif
+//end
 void battery_service_data_init(struct mtk_battery *gm)
 {
 	struct battery_data *bs_data;
@@ -2995,6 +3003,11 @@ int get_shutdown_cond_flag(struct mtk_battery *gm)
 {
 	return gm->sdc.shutdown_cond_flag;
 }
+//techyminati: Implement gigaset charge restriction
+#if defined (CONFIG_GIGASET_CHARGE_RESTRICTION)
+extern bool get_cmd_charge_disable(void);
+#endif
+// end
 
 int disable_shutdown_cond(struct mtk_battery *gm, int shutdown_cond)
 {

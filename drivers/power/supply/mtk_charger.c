@@ -1137,6 +1137,60 @@ static int mtk_chg_current_cmd_show(struct seq_file *m, void *data)
 	seq_printf(m, "%d %d\n", pinfo->usb_unlimited, pinfo->cmd_discharging);
 	return 0;
 }
+// techyminati: Add Gigaset Charge restriction
+static ssize_t show_cmd_charge_disable(struct device *dev,
+		struct device_attribute *attr, char *buf)
+{
+	struct charger_manager *pinfo = dev->driver_data;
+
+	pr_info("[charge] %s : %d\n",__func__, pinfo->cmd_discharging);
+	return sprintf(buf, "%d\n",pinfo->cmd_discharging);
+}
+
+static ssize_t store_cmd_charge_disable(struct device *dev,
+		struct device_attribute *attr, const char *buf, size_t size)
+{
+	struct charger_manager *pinfo = dev->driver_data;
+	unsigned int reg = 0;
+	int ret;
+
+	pr_info("[charge] %s\n", __func__);
+	if (buf != NULL && size != 0) {
+		pr_info("[store_cmd_charge_disable] buf is %s and size is %zu\n", buf, size);
+		ret = kstrtouint(buf, 16, &reg);
+		if(reg == 1){
+		   pinfo->cmd_discharging = true;
+		}else if(reg == 0){
+		   pinfo->cmd_discharging = false;
+		}else{
+		  pr_info("[store_cmd_charge_disable] input err please 0 or 1\n");
+		}
+
+		if((pinfo->chr_type != CHARGER_UNKNOWN) && (reg == 1)){
+		   charger_dev_enable(pinfo->chg1_dev, false);
+		   charger_manager_notifier(pinfo,CHARGER_NOTIFY_STOP_CHARGING);
+		   pr_info("[store_cmd_charge_disable] disable charge\n");
+		}else if((pinfo->chr_type != CHARGER_UNKNOWN) && (reg == 0)){
+		   charger_dev_enable(pinfo->chg1_dev, true);
+		   charger_manager_notifier(pinfo,CHARGER_NOTIFY_START_CHARGING);
+		   pr_info("[store_cmd_charge_disable]  enable charge \n");
+		}else {
+		   pr_info("[store_cmd_charge_disable]  No USB connection \n");
+		}
+	}
+	return size;
+}
+static DEVICE_ATTR(cmd_charge_disable, 0664, show_cmd_charge_disable,
+		store_cmd_charge_disable);
+
+#if defined (CONFIG_GIGASET_CHARGE_RESTRICTION)
+bool get_cmd_charge_disable(void){
+   pr_info("[charge] %s cmd_discharging =%d \n", __func__,pinfo->cmd_discharging);
+   return pinfo->cmd_discharging;
+}
+EXPORT_SYMBOL(get_cmd_charge_disable);
+#endif
+//gigaset charger end
 
 static int mtk_chg_current_cmd_open(struct inode *node, struct file *file)
 {
@@ -3084,12 +3138,13 @@ static int mtk_charger_setup_files(struct platform_device *pdev)
 	if (ret)
 		goto _out;
 
-	//prize add by lvyuanchuan for controlling charger --start
-	//ret = device_create_file(&(pdev->dev), &dev_attr_cmd_charge_disable);
-	//if (ret)
-	//	goto _out;
-	cmd_charge_disable_sysfs_create();
-	//prize add by lvyuanchuan for controlling charger --end
+// techyminati: Add Gigaset charge restriction config
+#if defined (CONFIG_GIGASET_CHARGE_RESTRICTION)
+  			ret = device_create_file(&(pdev->dev), &dev_attr_cmd_charge_disable);
+  			if (ret)
+ 			   goto _out;
+#endif
+//gigaset-charge restriction end
 
 	battery_dir = proc_mkdir("mtk_battery_cmd", NULL);
 	if (!battery_dir) {

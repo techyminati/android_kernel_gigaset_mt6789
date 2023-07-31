@@ -157,7 +157,13 @@ config PRIZE_CHARGE_CTRL_POLICY
 	help
 	  This is used to PRIZE_CHARGE_CTRL_POLICY	  
 
-#prize add by zhaopengge 20220610 end 	
+#prize add by zhaopengge 20220610 en
+# techyminati // Charge Restriction
+config  GIGASET_CHARGE_RESTRICTION
+        bool "Charging restriction"
+        default y
+        help
+           This is used to limit battery charging to the user-set desired limit.
 
 config PRIZE_MT5725_SUPPORT_15W
 	tristate "MT5725 Battery driver"
